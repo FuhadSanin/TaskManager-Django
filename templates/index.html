@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>To Do List Application</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-gray-100 text-gray-800 font-sans">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+      <!-- Title -->
+      <header class="text-center mb-8">
+        <h1
+          class="text-3xl font-bold text-gray-900 flex items-center justify-center"
+        >
+          <i class="fas fa-clipboard-list mr-3 text-blue-500"></i>
+          To Do List Application
+        </h1>
+      </header>
+
+      <!-- User Authentication -->
+      <div class="text-center mb-6">
+        {% if request.user.is_authenticated %}
+        <h2 class="text-lg font-semibold mb-2">
+          <i class="fas fa-user mr-2 text-green-500"></i>
+          Hey, {{ request.user }}
+        </h2>
+        <form action="/user/logout/" method="post">
+          {% csrf_token %}
+          <button
+            type="submit"
+            class="text-red-600 hover:text-red-800 inline-flex items-center"
+          >
+            <i class="fas fa-sign-out-alt mr-2"></i>Logout
+          </button>
+        </form>
+        {% else %}
+        <a
+          href="/user/login"
+          class="text-blue-600 hover:text-blue-800 inline-flex items-center"
+        >
+          <i class="fas fa-sign-in-alt mr-2"></i>Login
+        </a>
+        {% endif %}
+      </div>
+
+      <!-- Add Task Button -->
+      <div class="text-center mb-4">
+        <a
+          href="/add-task/"
+          class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 inline-flex items-center"
+        >
+          <i class="fas fa-plus-circle mr-2"></i>Add Task
+        </a>
+      </div>
+
+      <!-- Tabs -->
+      <div class="border rounded bg-white">
+        <div class="flex border-b">
+          <button
+            id="all-tab"
+            class="flex-1 text-center py-2 border-b-2 font-medium cursor-pointer focus:outline-none border-blue-500 text-blue-500 flex items-center justify-center"
+            onclick="showTab('all')"
+          >
+            <i class="fas fa-list mr-2"></i>All Tasks
+          </button>
+          <button
+            id="pending-tab"
+            class="flex-1 text-center py-2 border-b-2 font-medium cursor-pointer focus:outline-none border-transparent text-gray-500 hover:text-blue-500 flex items-center justify-center"
+            onclick="showTab('pending')"
+          >
+            <i class="fas fa-tasks mr-2"></i>Pending Tasks
+          </button>
+          <button
+            id="completed-tab"
+            class="flex-1 text-center py-2 border-b-2 font-medium cursor-pointer focus:outline-none border-transparent text-gray-500 hover:text-blue-500 flex items-center justify-center"
+            onclick="showTab('completed')"
+          >
+            <i class="fas fa-check-circle mr-2"></i>Completed Tasks
+          </button>
+        </div>
+
+        <!-- All Tasks Section -->
+        <section id="all-section" class="p-4">
+          <h4 class="text-lg font-semibold mb-4 flex items-center">
+            <i class="fas fa-list mr-2 text-blue-500"></i>
+            All Tasks
+          </h4>
+          <div class="space-y-4">
+            {% for i in all %}
+            <div
+              class="flex items-center justify-between p-4 bg-white shadow rounded border {% cycle '' 'bg-gray-50' %}"
+            >
+              <div>
+                <h5
+                  class="text-lg font-medium {% if i.status %}line-through text-red-500{% endif %}"
+                >
+                  {{ i.title }}
+                </h5>
+                <p class="text-sm text-gray-500">{{ i.created_date }}</p>
+              </div>
+              <div class="flex items-center space-x-2">
+                {% if not i.status %}
+                <a
+                  href="/complete-task/{{ i.id }}"
+                  class="text-green-600 hover:text-green-800"
+                  title="Complete"
+                >
+                  <i class="fas fa-check-circle"></i>
+                </a>
+                {% endif %}
+                <a
+                  href="/update-task/{{ i.id }}"
+                  class="text-blue-600 hover:text-blue-800"
+                  title="Update"
+                >
+                  <i class="fas fa-edit"></i>
+                </a>
+                <a
+                  href="/del-task/{{ i.id }}"
+                  class="text-red-600 hover:text-red-800"
+                  title="Delete"
+                >
+                  <i class="fas fa-trash"></i>
+                </a>
+                <a
+                  href="/detail-task/{{ i.id }}"
+                  class="text-yellow-600 hover:text-yellow-800"
+                  title="Details"
+                >
+                  <i class="fas fa-info-circle"></i>
+                </a>
+              </div>
+            </div>
+            {% empty %}
+            <div class="text-center text-gray-500 p-4 bg-gray-50 rounded">
+              <i class="fas fa-folder-open mr-2"></i>
+              No tasks available.
+            </div>
+            {% endfor %}
+          </div>
+        </section>
+
+        <!-- Pending Tasks Section -->
+        <section id="pending-section" class="p-4 hidden">
+          <h4 class="text-lg font-semibold mb-4 flex items-center">
+            <i class="fas fa-spinner mr-2 text-blue-500"></i>
+            Pending Tasks
+          </h4>
+          <div class="space-y-4">
+            {% for i in pending %}
+            <div
+              class="flex items-center justify-between p-4 bg-white shadow rounded border {% cycle '' 'bg-gray-50' %}"
+            >
+              <div>
+                <h5 class="text-lg font-medium">{{ i.title }}</h5>
+                <p class="text-sm text-gray-500">{{ i.created_date }}</p>
+              </div>
+              <div class="flex items-center space-x-2">
+                <a
+                  href="/update-task/{{ i.id }}"
+                  class="text-blue-600 hover:text-blue-800"
+                  title="Update"
+                >
+                  <i class="fas fa-edit"></i>
+                </a>
+                <a
+                  href="/del-task/{{ i.id }}"
+                  class="text-red-600 hover:text-red-800"
+                  title="Delete"
+                >
+                  <i class="fas fa-trash"></i>
+                </a>
+                <a
+                  href="/complete-task/{{ i.id }}"
+                  class="text-green-600 hover:text-green-800"
+                  title="Complete"
+                >
+                  <i class="fas fa-check-circle"></i>
+                </a>
+                <a
+                  href="/detail-task/{{ i.id }}"
+                  class="text-yellow-600 hover:text-yellow-800"
+                  title="Details"
+                >
+                  <i class="fas fa-info-circle"></i>
+                </a>
+              </div>
+            </div>
+            {% empty %}
+            <div class="text-center text-gray-500 p-4 bg-gray-50 rounded">
+              <i class="fas fa-folder-open mr-2"></i>
+              No tasks available.
+            </div>
+            {% endfor %}
+          </div>
+        </section>
+
+        <!-- Completed Tasks Section -->
+        <section id="completed-section" class="p-4 hidden">
+          <h4 class="text-lg font-semibold mb-4 flex items-center">
+            <i class="fas fa-check-double mr-2 text-green-500"></i>
+            Completed Tasks
+          </h4>
+          <div class="space-y-4">
+            {% for i in completed %}
+            <div
+              class="flex items-center justify-between p-4 bg-white shadow rounded border {% cycle '' 'bg-gray-50' %}"
+            >
+              <div>
+                <h5 class="text-lg font-medium line-through text-gray-500">
+                  {{ i.title }}
+                </h5>
+                <p class="text-sm text-gray-500">{{ i.completed_date }}</p>
+              </div>
+              <a
+                href="/detail-task/{{ i.id }}"
+                class="text-yellow-600 hover:text-yellow-800"
+                title="Details"
+              >
+                <i class="fas fa-info-circle"></i>
+              </a>
+            </div>
+            {% empty %}
+            <div class="text-center text-gray-500 p-4 bg-gray-50 rounded">
+              <i class="fas fa-clipboard-list mr-2"></i>
+              No completed tasks available.
+            </div>
+            {% endfor %}
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <script>
+      function showTab(tab) {
+        const tabs = ["all", "pending", "completed"]
+        tabs.forEach(t => {
+          document
+            .getElementById(`${t}-tab`)
+            .classList.remove("border-blue-500", "text-blue-500")
+          document
+            .getElementById(`${t}-tab`)
+            .classList.add("border-transparent", "text-gray-500")
+          document.getElementById(`${t}-section`).classList.add("hidden")
+        })
+        document
+          .getElementById(`${tab}-tab`)
+          .classList.add("border-blue-500", "text-blue-500")
+        document
+          .getElementById(`${tab}-tab`)
+          .classList.remove("border-transparent", "text-gray-500")
+        document.getElementById(`${tab}-section`).classList.remove("hidden")
+      }
+    </script>
+  </body>
+</html>
