@@ -1,8 +1,11 @@
 from typing import Any
 from django.db.models.query import QuerySet
+from django.forms import BaseModelForm
 from django.shortcuts import render
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse, HttpResponseRedirect
+from django.db.models import F
+
 
 from tasks.models import Tasks
 from django.views import View
@@ -19,7 +22,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 
 class AuthorisationTaskView(LoginRequiredMixin):
     def get_queryset(self):
-        tasks = Tasks.objects.filter(status=False , user=self.request.user)
+        tasks = Tasks.objects.filter(user=self.request.user)
         return tasks
 
 
@@ -38,8 +41,7 @@ class GenericTaskView(AuthorisationTaskView, ListView):
 
     def get_queryset(self):
         search = self.request.GET.get('search', '').strip() 
-        tasks = Tasks.objects.filter(user=self.request.user)
-
+        tasks = Tasks.objects.filter(user=self.request.user).order_by( 'status')
         if search:
             tasks = tasks.filter(title__icontains=search)
 
@@ -64,20 +66,19 @@ class GenericTaskView(AuthorisationTaskView, ListView):
 
         return context
     
-class GenericCreateTaskView(AuthorisationTaskView,CreateView):
+class GenericCreateTaskView(AuthorisationTaskView, CreateView):
     model = Tasks
     template_name = "task_create.html"
     fields = ("title", "description")
     success_url = "/tasks"
 
     def form_valid(self, form):
-        """If the form is valid, save the associated model."""
-        self.object = form.save()
+        self.object = form.save(commit=False)
         self.object.user = self.request.user
         self.object.save()
+
         return HttpResponseRedirect(self.get_success_url())
 
-    
 class GenericUpdateTaskView(AuthorisationTaskView,UpdateView):
     model = Tasks
     template_name = "task_update.html"
@@ -99,21 +100,12 @@ class GenericCompleteTaskView(AuthorisationTaskView,UpdateView):
     fields = ("status",)
     success_url = "/tasks"
 
+    def form_valid(self , form):
+        self.object = form.save(commit=False)
+        self.object.status = True
+        self.object.save()
+        return HttpResponseRedirect(self.get_success_url())
 
-
-#Class-based view
-class TaskView(View):
-    def get(self,request):
-        search = request.GET.get('search')
-        tasks = Tasks.objects.filter(status=False)
-        completed = Tasks.objects.filter(status=True)
-
-        if search:
-            tasks = tasks.filter(title__icontains=search)
-        return render(request, 'index.html', {
-            'tasks': tasks,
-            'completed': completed
-        })
 
 
 #Fuction-based view

@@ -6,4 +6,4 @@ class Tasks(models.Model):
     description = models.TextField()
     status = models.BooleanField(default=False)
     created_date = models.DateTimeField(auto_now=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True ) #ondelete is used to delete the task of a corresponding user when it is deleted
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True ) 
